@@ -97,12 +97,26 @@
   
     function savePhoneNumber() {
       const phone = document.getElementById('phoneInput').value.replace(/-/g, '');
+      
+      // 1. 번호 형식 검사
       if (!/^01[016789]\d{7,8}$/.test(phone)) {
-        alert('올바른 전화번호 형식이 아닙니다.'); return;
+        alert('올바른 전화번호 형식이 아닙니다.'); 
+        return;
       }
-      if (validPhoneNumbers.length > 0 && !validPhoneNumbers.includes(phone)) {
-        alert('출석부에 등록되지 않은 전화번호입니다.'); return;
+      
+      // 2. 명단 데이터가 0개일 때 (아직 못 불러왔거나 통신 오류일 때) 무조건 막기!
+      if (validPhoneNumbers.length === 0) {
+        alert('서버에서 출석부 명단을 불러오는 중이거나 통신 오류가 있습니다. 2~3초 뒤에 다시 시도해주세요.'); 
+        return;
       }
+
+      // 3. 구글 시트에 등록된 번호가 아닐 때 확실히 막기!
+      if (!validPhoneNumbers.includes(phone)) {
+        alert('출석부에 등록되지 않은 전화번호입니다.'); 
+        return;
+      }
+
+      // 4. 모두 통과하면 기기에 저장
       localStorage.setItem(PHONE_KEY, phone);
       alert('등록 완료! 카메라 켜기 버튼을 눌러주세요.');
       checkSavedPhone();
@@ -128,14 +142,14 @@
       }
   
       const html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (decodedText) => {
+      html5QrCode.start({ facingMode: "environment" }, { fps: 15 }, async (decodedText) => {
         const phone = localStorage.getItem(PHONE_KEY);
         html5QrCode.stop();
         btn.style.display = 'block'; btn.innerText = "처리 중...";
         
         try {
           const res = await apiCall({ action: "markAttendance", phoneNumber: phone });
-          showResult(res.success ? `${res.name}님 출석 완료 (${res.time})` : res.message, res.success);
+          showResult(res.success ? `[${res.studentId}] ${res.name}님 출석 완료 (${res.time})` : res.message, res.success);
         } catch (e) {
           showResult("통신 오류 발생", false);
         }
@@ -151,8 +165,8 @@
     }
 
     function goToManager() {
-      const password = prompt("관리자 비밀번호를 입력하세요:");
-      if (password === "36643664") { // 비밀번호 설정
+      const password = prompt();
+      if (password === "36643664") {
         window.location.href = "indexmanager.html";
       } else if (password !== null) {
         alert("비밀번호가 틀렸습니다.");
