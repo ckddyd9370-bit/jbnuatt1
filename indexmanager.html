@@ -56,7 +56,7 @@
 
   <script>
     // 🔥 앱스스크립트 '웹 앱 URL' 동일하게 입력 🔥
-    const GAS_API_URL = "여기에_새로_배포한_웹앱_URL을_넣으세요"; 
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzEGvhlwKQnaUq79vMDIvD1_LFVERl08xKsDJQ5a3ttpEIiRDlfZkmy49fVnyTECst1Ww/exec"; 
     
     // API 통신 함수
     async function apiCall(data) {
@@ -110,7 +110,7 @@
 
       try {
         const res = await apiCall({ action: "markAttendance", phoneNumber: phone });
-        showResult(res.success ? `${res.name} 학생 출석 완료 (${res.time})` : res.message, res.success);
+        showResult(res.success ? `[${res.studentId}] ${res.name}학생 출석 완료 (${res.time})` : res.message, res.success);
         if (res.success) phoneInput.value = ''; // 성공시 입력창 비우기
       } catch (e) { 
         showResult("통신 오류가 발생했습니다.", false); 
