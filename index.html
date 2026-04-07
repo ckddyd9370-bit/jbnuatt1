@@ -3,81 +3,67 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>QR 출석 시스템 (단독형)</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <title>QR 출석 시스템 (학생용)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.4/html5-qrcode.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }
-    .container { max-width: 800px; margin: 0 auto; }
-    .tab-content { display: none; padding: 20px; border: 1px solid #ccc; border-top: none; }
-    .tab-content.active { display: block; }
-    .tabs { display: flex; justify-content: center; margin-bottom: 20px; }
-    .tab-button { background-color: #f2f2f2; border: 1px solid #ccc; padding: 10px 20px; cursor: pointer; font-size: 16px; flex: 1; }
-    .tab-button.active { background-color: #4CAF50; color: white; }
-    #qrcode { margin: 30px auto; width: 250px; height: 250px; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; background-color: #f8f9fa; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    h1 { color: #333; margin-bottom: 20px; }
     #reader { width: 100%; max-width: 500px; margin: 0 auto; }
-    #result, #manualResult { margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; display: none; }
-    .success { background-color: #d4edda; color: #155724; }
-    .error { background-color: #f8d7da; color: #721c24; }
-    input[type="tel"] { padding: 8px; width: 200px; font-size: 16px; margin-bottom: 10px; }
-    button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-    #startCameraBtn { margin: 15px auto; display: none; width: 80%; padding: 15px; background-color: #007bff; border-radius: 8px; font-weight: bold; }
+    #result { margin: 20px 0; padding: 15px; border-radius: 5px; display: none; }
+    .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    input[type="tel"] { padding: 10px; width: 80%; max-width: 250px; font-size: 16px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
+    button { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
+    button:hover { background-color: #45a049; }
+    #startCameraBtn { margin: 15px auto; display: none; width: 80%; padding: 15px; background-color: #007bff; border-radius: 8px; font-size: 18px; }
+    #startCameraBtn:hover { background-color: #0069d9; }
+    
+    /* 관리자 이동 버튼 (우하단) */
+    .manager-btn {
+      position: fixed; bottom: 20px; right: 20px;
+      background-color: rgba(0, 0, 0, 0.2); color: white;
+      border: none; border-radius: 50%; width: 45px; height: 45px;
+      font-size: 20px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; transition: 0.3s; padding: 0;
+    }
+    .manager-btn:hover { background-color: rgba(0, 0, 0, 0.6); }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>전북사대부고 1학년 출석부</h1>
+    <h1>📱 출석 스캐너</h1>
     
-    <div class="tabs">
-      <button class="tab-button" onclick="openTab('generate')">QR 생성 (관리자)</button>
-      <button class="tab-button active" onclick="openTab('scan')">QR 스캔 (학생)</button>
-      <button class="tab-button" onclick="openTab('manual')">수동 출석 (학생)</button>
+    <div id="userInfo" style="display:none; padding:15px; background:#e2f3ff; border-radius:8px; margin-bottom: 20px;">
+      <p style="margin-top:0;"><strong>등록된 내 번호:</strong> <span id="savedPhoneDisplay" style="font-size: 18px; color: #0056b3;"></span></p>
+      <button onclick="resetPhoneNumber()" style="background-color: #dc3545; padding:8px 15px; font-size:14px;">번호 다시 입력하기</button>
     </div>
     
-    <div id="generate" class="tab-content">
-      <h2>학생 스캔용 QR 코드</h2>
-      <p>이 QR을 스캔하면 현재 페이지로 접속합니다.</p>
-      <div id="qrcode"></div>
+    <div id="phoneRegistration" style="background:#e9ecef; padding:20px; border-radius:8px; margin-bottom: 20px;">
+      <p>본인의 휴대폰 번호를 먼저 등록해 주세요.</p>
+      <input type="tel" id="phoneInput" placeholder="01012345678 (숫자만)">
+      <br><button onclick="savePhoneNumber()">등록하기</button>
     </div>
     
-    <div id="scan" class="tab-content active">
-      <div id="userInfo" style="display:none; padding:10px; background:#e2f3ff; border-radius:5px;">
-        <p><strong>등록된 번호:</strong> <span id="savedPhoneDisplay"></span></p>
-        <button onclick="resetPhoneNumber()" style="background-color: #dc3545; padding:5px 10px; font-size:14px;">번호 재설정</button>
-      </div>
-      
-      <div id="phoneRegistration" style="background:#e9ecef; padding:15px; border-radius:5px; margin-top:15px;">
-        <p>전화번호를 먼저 등록해 주세요.</p>
-        <input type="tel" id="phoneInput" placeholder="01012345678">
-        <br><button onclick="savePhoneNumber()">등록하기</button>
-      </div>
-      
-      <button id="startCameraBtn" onclick="initScanner()">📷 출석 카메라 켜기</button>
-      <div id="reader"></div>
-      <div id="result"></div>
-    </div>
-    
-    <div id="manual" class="tab-content">
-      <h2>수동 출석체크</h2>
-      <input type="tel" id="manualPhoneInput" placeholder="01012345678">
-      <br><button onclick="manualAttendance()">출석체크</button>
-      <div id="manualResult"></div>
-    </div>
+    <button id="startCameraBtn" onclick="initScanner()">📷 출석 카메라 켜기</button>
+    <div id="reader"></div>
+    <div id="result"></div>
   </div>
 
+  <button class="manager-btn" onclick="goToManager()" title="관리자">⚙️</button>
+  
   <script>
-    // 복사한 앱스스크립트 '웹 앱 URL'을 붙여넣으세요!
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzEGvhlwKQnaUq79vMDIvD1_LFVERl08xKsDJQ5a3ttpEIiRDlfZkmy49fVnyTECst1Ww/exec"; 
+    // 🔥 앱스스크립트 '웹 앱 URL' 입력 🔥
+    const GAS_API_URL = "hhttps://script.google.com/macros/s/AKfycbzEGvhlwKQnaUq79vMDIvD1_LFVERl08xKsDJQ5a3ttpEIiRDlfZkmy49fVnyTECst1Ww/exec"; 
     
     const PHONE_KEY = 'studentPhoneNumber';
     let validPhoneNumbers = [];
-
-    // 서버와 통신하는 핵심 함수
+  
     async function apiCall(data) {
       try {
         const response = await fetch(GAS_API_URL, {
           method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" }, // CORS 에러 방지
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify(data)
         });
         return await response.json();
@@ -86,22 +72,13 @@
         throw error;
       }
     }
-
+  
     window.onload = async function() {
       checkSavedPhone();
-      
-      // QR코드 생성 (현재 CodePen 주소를 QR로 만듭니다)
-      new QRCode(document.getElementById("qrcode"), {
-        text: window.location.href, width: 250, height: 250
-      });
-
-      // 유효한 전화번호 목록 가져오기
       try {
         const res = await apiCall({ action: "getAllPhones" });
         if (res.success) validPhoneNumbers = res.phones;
-      } catch (e) {
-        console.log("전화번호 목록을 불러오지 못했습니다.");
-      }
+      } catch (e) { console.log("전화번호 목록을 불러오지 못했습니다."); }
     };
 
     function checkSavedPhone() {
@@ -111,44 +88,35 @@
         document.getElementById('savedPhoneDisplay').textContent = saved;
         document.getElementById('phoneRegistration').style.display = 'none';
         document.getElementById('startCameraBtn').style.display = 'block';
-        document.getElementById('manualPhoneInput').value = saved;
       } else {
         document.getElementById('userInfo').style.display = 'none';
         document.getElementById('phoneRegistration').style.display = 'block';
         document.getElementById('startCameraBtn').style.display = 'none';
       }
     }
-
+  
     function savePhoneNumber() {
       const phone = document.getElementById('phoneInput').value.replace(/-/g, '');
       if (!/^01[016789]\d{7,8}$/.test(phone)) {
         alert('올바른 전화번호 형식이 아닙니다.'); return;
       }
       if (validPhoneNumbers.length > 0 && !validPhoneNumbers.includes(phone)) {
-        alert('시트에 등록되지 않은 전화번호입니다.'); return;
+        alert('출석부에 등록되지 않은 전화번호입니다.'); return;
       }
       localStorage.setItem(PHONE_KEY, phone);
       alert('등록 완료! 카메라 켜기 버튼을 눌러주세요.');
       checkSavedPhone();
     }
-
+  
     function resetPhoneNumber() {
       localStorage.removeItem(PHONE_KEY);
-      document.getElementById('manualPhoneInput').value = '';
       checkSavedPhone();
     }
-
-    function openTab(tabName) {
-      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
-      document.querySelectorAll(".tab-button").forEach(el => el.classList.remove("active"));
-      document.getElementById(tabName).classList.add("active");
-      event.currentTarget.classList.add("active");
-    }
-
+  
     async function initScanner() {
       const btn = document.getElementById('startCameraBtn');
       btn.innerText = "로딩 중..."; btn.disabled = true;
-
+  
       try {
         let stream;
         try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }); } 
@@ -158,7 +126,7 @@
         alert("카메라 권한을 허용해주세요!"); 
         btn.innerText = "📷 출석 카메라 켜기"; btn.disabled = false; return;
       }
-
+  
       const html5QrCode = new Html5Qrcode("reader");
       html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (decodedText) => {
         const phone = localStorage.getItem(PHONE_KEY);
@@ -167,29 +135,28 @@
         
         try {
           const res = await apiCall({ action: "markAttendance", phoneNumber: phone });
-          showResult(res.success ? `[${res.studentId}] ${res.name}님 출석 완료 (${res.time})` : res.message, res.success);
+          showResult(res.success ? `${res.name}님 출석 완료 (${res.time})` : res.message, res.success);
         } catch (e) {
           showResult("통신 오류 발생", false);
         }
         btn.innerText = "📷 다시 스캔하기"; btn.disabled = false;
       }, () => {}).then(() => { btn.style.display = 'none'; });
     }
-
-    async function manualAttendance() {
-      const phone = document.getElementById('manualPhoneInput').value.replace(/-/g, '');
-      if (!phone) return alert("번호를 입력하세요.");
-      try {
-        const res = await apiCall({ action: "markAttendance", phoneNumber: phone });
-        showResult(res.success ? `${res.name}님 출석 완료 (${res.time})` : res.message, res.success, 'manualResult');
-        if(res.success) localStorage.setItem(PHONE_KEY, phone); checkSavedPhone();
-      } catch (e) { showResult("통신 오류", false, 'manualResult'); }
-    }
-
-    function showResult(msg, isSuccess, targetId = 'result') {
-      const div = document.getElementById(targetId);
+  
+    function showResult(msg, isSuccess) {
+      const div = document.getElementById('result');
       div.textContent = msg; div.style.display = "block";
       div.className = isSuccess ? "success" : "error";
       setTimeout(() => div.style.display = "none", 5000);
+    }
+
+    function goToManager() {
+      const password = prompt("관리자 비밀번호를 입력하세요:");
+      if (password === "36643664") { // 비밀번호 설정
+        window.location.href = "indexmanager.html";
+      } else if (password !== null) {
+        alert("비밀번호가 틀렸습니다.");
+      }
     }
   </script>
 </body>
